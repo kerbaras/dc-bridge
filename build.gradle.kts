@@ -6,6 +6,7 @@ plugins {
     kotlin("plugin.serialization") version "2.1.0"
     id("fabric-loom") version "1.9-SNAPSHOT"
     id("maven-publish")
+    id("com.github.johnrengelman.shadow") version "8.1.1"
 }
 
 version = project.property("mod_version") as String
@@ -18,9 +19,6 @@ base {
 val targetJavaVersion = 21
 java {
     toolchain.languageVersion = JavaLanguageVersion.of(targetJavaVersion)
-    // Loom will automatically attach sourcesJar to a RemapSourcesJar task and to the "build" task
-    // if it is present.
-    // If you remove this line, sources will not be generated.
     withSourcesJar()
 }
 
@@ -36,11 +34,8 @@ loom {
 }
 
 repositories {
-    // Add repositories to retrieve artifacts from in here.
-    // You should only use this when depending on other mods because
-    // Loom adds the essential maven repositories to download Minecraft and libraries from automatically.
-    // See https://docs.gradle.org/current/userguide/declaring_repositories.html
-    // for more information about repositories.
+    maven(url = "https://maven.fabricmc.net/")
+    mavenCentral()
 }
 
 dependencies {
@@ -51,11 +46,19 @@ dependencies {
     modImplementation("net.fabricmc:fabric-language-kotlin:${project.property("kotlin_loader_version")}")
 
     modImplementation("net.fabricmc.fabric-api:fabric-api:${project.property("fabric_version")}")
-    implementation("net.dv8tion:JDA:5.2.1"){
-        exclude(module="opus-java")
+
+    implementation("net.dv8tion:JDA:5.2.1") {
+        exclude(module = "opus-java")
     }
+    shadow("net.dv8tion:JDA:5.2.1")
+
     implementation("club.minnced:discord-webhooks:0.8.4")
+    shadow("club.minnced:discord-webhooks:0.8.4")
+
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.7.3")
+
+    implementation("net.java.dev.jna:jna:5.16.0")
+    shadow("net.java.dev.jna:jna:5.16.0")
 }
 
 tasks.processResources {
@@ -75,10 +78,6 @@ tasks.processResources {
 }
 
 tasks.withType<JavaCompile>().configureEach {
-    // ensure that the encoding is set to UTF-8, no matter what the system default is
-    // this fixes some edge cases with special characters not displaying correctly
-    // see http://yodaconditions.net/blog/fix-for-java-file-encoding-problems-with-gradle.html
-    // If Javadoc is generated, this must be specified in that task too.
     options.encoding = "UTF-8"
     options.release.set(targetJavaVersion)
 }
@@ -93,7 +92,16 @@ tasks.jar {
     }
 }
 
-// configure the maven publication
+tasks.shadowJar {
+    configurations = listOf(project.configurations.shadow.get())
+    exclude("META-INF/services/**")
+}
+
+tasks.remapJar {
+    dependsOn(tasks.shadowJar)
+    inputFile = tasks.shadowJar.get().archiveFile.get().asFile
+}
+
 publishing {
     publications {
         create<MavenPublication>("mavenJava") {
@@ -102,11 +110,5 @@ publishing {
         }
     }
 
-    // See https://docs.gradle.org/current/userguide/publishing_maven.html for information on how to set up publishing.
-    repositories {
-        // Add repositories to publish to here.
-        // Notice: This block does NOT have the same function as the block in the top level.
-        // The repositories here will be used for publishing your artifact, not for
-        // retrieving dependencies.
-    }
+    repositories {}
 }

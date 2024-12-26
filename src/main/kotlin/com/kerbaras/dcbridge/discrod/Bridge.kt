@@ -31,7 +31,7 @@ object Bridge: BridgeListener {
     }
 
     override fun onMessageSent(player: ServerPlayerEntity, message: String) {
-        discord.say(message, player.name.string!!, "https://mc-heads.net/avatar/${player.uuidAsString}")
+        discord.say(message, player.name.string!!, "https://mc-heads.net/head/${player.uuidAsString}")
     }
 
     override fun onPlayerJoined(player: ServerPlayerEntity) {
@@ -50,25 +50,5 @@ object Bridge: BridgeListener {
 
     override fun onPlayerDeath(player: ServerPlayerEntity, reason: String) {
         discord.say(":skull: $reason")
-    }
-
-    fun colorFromString(color: String): Color {
-        val s = color.lowercase(Locale.getDefault())
-        return when (s) {
-            "white" -> Color.WHITE
-            "light_gray" -> Color.LIGHT_GRAY
-            "gray" -> Color.GRAY
-            "dark_gray" -> Color.DARK_GRAY
-            "black" -> Color.BLACK
-            "red" -> Color.RED
-            "pink" -> Color.PINK
-            "orange" -> Color.ORANGE
-            "yellow" -> Color.YELLOW
-            "green" -> Color.GREEN
-            "magenta" -> Color.MAGENTA
-            "cyan" -> Color.CYAN
-            "blue" -> Color.BLUE
-            else -> Color.WHITE
-        }
     }
 }
