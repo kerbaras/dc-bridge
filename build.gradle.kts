@@ -56,6 +56,7 @@ dependencies {
     shadow("club.minnced:discord-webhooks:0.8.4")
 
     implementation("com.charleskorn.kaml:kaml:0.67.0")
+    shadow("com.charleskorn.kaml:kaml:0.67.0")
 
     implementation("net.java.dev.jna:jna:5.16.0")
     shadow("net.java.dev.jna:jna:5.16.0")

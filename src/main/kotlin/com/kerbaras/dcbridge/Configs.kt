@@ -18,8 +18,14 @@ enum class Watchers(val events: List<ChannelSubscriber>) {
     @SerialName("player")
     PLAYER(listOf(PLAYER_DEATH, PLAYER_LEFT, PLAYER_JOINED).flatMap { it.events }),
 
+    @SerialName("started")
+    SERVER_STARTED(listOf(ServerStarting)),
+
+    @SerialName("stopped")
+    SERVER_STOPPED(listOf(ServerStopped)),
+
     @SerialName("system")
-    SYSTEM(listOf()),
+    SYSTEM(listOf(SERVER_STARTED, SERVER_STOPPED).flatMap { it.events }),
 
     @SerialName("info")
     INFO(listOf(PLAYER, SYSTEM).flatMap { it.events }),

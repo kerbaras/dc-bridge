@@ -1,7 +1,6 @@
 package com.kerbaras.dcbridge
 
 import com.charleskorn.kaml.Yaml
-import kotlinx.serialization.encodeToString
 import java.io.File
 
 object ConfigManager {

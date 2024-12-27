@@ -54,23 +54,6 @@ class DiscordClient(val jda: JDA): ListenerAdapter() {
         }
     }
 
-    fun say(message: String, name: String, avatar: String) {
-        val msg = WebhookMessageBuilder()
-            .setUsername(name) // use this username
-            .setContent(message)
-            .setAvatarUrl(avatar)
-            .build()
-        webhooks.broadcast(msg)
-    }
-
-    fun say(message: String) {
-        val msg = WebhookMessageBuilder()
-            .setUsername("Minecraft Server")
-            .setContent(message)
-            .build()
-        webhooks.broadcast(msg)
-    }
-
     private fun updateCommands(){
         channels
             .map { it.value.textChannel.guild }
