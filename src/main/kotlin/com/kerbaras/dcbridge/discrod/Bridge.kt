@@ -1,14 +1,12 @@
 package com.kerbaras.dcbridge.discrod
 
 import net.dv8tion.jda.api.entities.Member
+import net.dv8tion.jda.api.entities.channel.concrete.TextChannel
 import net.minecraft.server.MinecraftServer
-import net.minecraft.server.network.ServerPlayerEntity
 import net.minecraft.text.Text
-import java.awt.Color
-import java.util.*
 
 
-object Bridge: BridgeListener {
+object Bridge {
 
     lateinit var server: MinecraftServer
     lateinit var discord: DiscordClient
@@ -19,7 +17,19 @@ object Bridge: BridgeListener {
         statusManager = StatusManager(discord)
     }
 
-    override fun onMessageReceived(member: Member, message: String) {
+    fun tell(channel: TextChannel, message: String) {
+        discord.tell(channel, message)
+    }
+
+    fun tell(channel: TextChannel, message: String, username: String, avatarUrl: String) {
+        discord.tell(channel, message, username, avatarUrl)
+    }
+
+    fun tick() {
+        statusManager.updateStatus(server)
+    }
+
+    fun say(member: Member, message: String) {
         server.playerManager.broadcast(
             Text.empty()
                 .append(
@@ -30,25 +40,4 @@ object Bridge: BridgeListener {
         )
     }
 
-    override fun onMessageSent(player: ServerPlayerEntity, message: String) {
-        discord.say(message, player.name.string!!, "https://mc-heads.net/head/${player.uuidAsString}")
-    }
-
-    override fun onPlayerJoined(player: ServerPlayerEntity) {
-        discord.say("${player.name.string!!}: joined the server")
-    }
-
-    override fun onPlayerLeave(player: ServerPlayerEntity) {
-        discord.say("${player.name.string!!}: left the server")
-    }
-
-    fun tick() {
-        val list = server.playerManager.playerList
-        val plural = if (list.size == 1) "player" else "players"
-        statusManager.setStatus("${list.size} $plural online")
-    }
-
-    override fun onPlayerDeath(player: ServerPlayerEntity, reason: String) {
-        discord.say(":skull: $reason")
-    }
 }

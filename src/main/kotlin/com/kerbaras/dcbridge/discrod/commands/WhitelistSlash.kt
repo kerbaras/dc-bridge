@@ -15,10 +15,10 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 import java.util.UUID
 
-@Serializable
-data class MCProfile(val id: String, val name: String)
-
 object WhitelistSlash: ListenerAdapter() {
+
+    @Serializable
+    data class MCProfile(val id: String, val name: String)
 
     private val client = OkHttpClient()
 

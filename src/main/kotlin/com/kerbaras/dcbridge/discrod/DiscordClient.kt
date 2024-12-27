@@ -1,5 +1,6 @@
 package com.kerbaras.dcbridge.discrod
 
+import club.minnced.discord.webhook.WebhookClient
 import club.minnced.discord.webhook.WebhookCluster
 import club.minnced.discord.webhook.external.JDAWebhookClient
 import club.minnced.discord.webhook.send.WebhookMessageBuilder
@@ -15,11 +16,11 @@ import net.dv8tion.jda.api.requests.GatewayIntent
 
 class DiscordClient(val jda: JDA): ListenerAdapter() {
     val webhooks: WebhookCluster = WebhookCluster()
-    lateinit var channel: TextChannel
+    val channels: HashMap<Long, ChannelEntry> = HashMap()
 
     companion object {
         fun setup(): DiscordClient {
-            val jda = JDABuilder.createLight(System.getenv("DISCORD_TOKEN"))
+            val jda = JDABuilder.createLight(ConfigManager.configs.token)
                 .enableIntents(GatewayIntent.GUILD_MESSAGES)
                 .enableIntents(GatewayIntent.GUILD_WEBHOOKS)
                 .enableIntents(GatewayIntent.MESSAGE_CONTENT)
@@ -30,18 +31,27 @@ class DiscordClient(val jda: JDA): ListenerAdapter() {
         }
     }
 
-    fun register(){
-        try {
-            channel = jda.getTextChannelById(ConfigManager.configs.channel)!!
-        } catch (ignored: Exception){
-            return
-        }
-
+    private fun getOrCreate(channel: TextChannel): WebhookClient {
         var webhook = channel.retrieveWebhooks().complete().find { webhook -> webhook?.name == "mc-chat" }
-        if (webhook == null) {
+        if (webhook == null)
             webhook = channel.createWebhook("mc-chat").complete()
+
+        val client = JDAWebhookClient.from(webhook!!)
+        webhooks.addWebhooks(client)
+        return client
+    }
+
+    private fun register(){
+        ConfigManager.configs.channels.forEach { config ->
+            val channel = jda.getTextChannelById(config.id)!!
+            val webhook = getOrCreate(channel)
+            channels[config.id] = ChannelEntry(channel, webhook, config)
+
+            config.watch
+                .flatMap { it.events }
+                .toSet()
+                .forEach { it.subscribe(channel) }
         }
-        webhooks.addWebhooks(JDAWebhookClient.from(webhook!!))
     }
 
     fun say(message: String, name: String, avatar: String) {
@@ -61,14 +71,13 @@ class DiscordClient(val jda: JDA): ListenerAdapter() {
         webhooks.broadcast(msg)
     }
 
-    fun setStatus(message: String) {
-        channel.manager.setTopic(message).queue()
-    }
-
     private fun updateCommands(){
-        jda.guilds.forEach { guild ->
-            WhitelistSlash.register(guild)
-        }
+        channels
+            .map { it.value.textChannel.guild }
+            .forEach { guild ->
+                if (ConfigManager.configs.features.whitelist)
+                    WhitelistSlash.register(guild)
+            }
     }
 
     override fun onReady(event: ReadyEvent) {
@@ -77,9 +86,25 @@ class DiscordClient(val jda: JDA): ListenerAdapter() {
     }
 
     override fun onMessageReceived(event: MessageReceivedEvent) {
+        if(!channels.containsKey(event.channel.idLong) || channels[event.channel.idLong]!!.config.muted)
+            return
+
         if (event.author.isBot || event.message.member == null)
             return
 
-        Bridge.onMessageReceived(event.message.member!!, event.message.contentRaw)
+        Bridge.say(event.message.member!!, event.message.contentRaw)
+    }
+
+    fun tell(channel: TextChannel, message: String) {
+        channel.sendMessage(message).queue()
+    }
+
+    fun tell(channel: TextChannel, message: String, name: String, avatar: String) {
+        val msg = WebhookMessageBuilder()
+            .setUsername(name)
+            .setContent(message)
+            .setAvatarUrl(avatar)
+            .build()
+        channels[channel.idLong]!!.webhook.send(msg)
     }
 }
